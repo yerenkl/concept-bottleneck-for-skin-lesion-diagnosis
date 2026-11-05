@@ -27,13 +27,17 @@ class ConceptBottleneckModel(nn.Module):
         self.diagnosis_head = nn.Linear(sum(self.concept_sizes), diagnosis_count)
 
     def forward(
-        self, images: torch.Tensor
+        self, images: torch.Tensor, detach_concepts: bool = False
     ) -> Tuple[List[torch.Tensor], torch.Tensor]:
         features = self.feature_extractor(images).flatten(1)
         concept_logits = [head(features) for head in self.concept_heads]
         concept_probabilities = [
             torch.softmax(logits, dim=1) for logits in concept_logits
         ]
+        if detach_concepts:
+            concept_probabilities = [
+                probabilities.detach() for probabilities in concept_probabilities
+            ]
         diagnosis_logits = self.diagnosis_head(
             torch.cat(concept_probabilities, dim=1)
         )
